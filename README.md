@@ -1,0 +1,2 @@
+# gqlgen-example
+GraphQL Example
