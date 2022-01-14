@@ -6,23 +6,51 @@ package graph
 import (
 	"context"
 	"fmt"
+	"math/rand"
+
 	"github.com/Ali-iotechsys/gqlgen-example/graph/generated"
 	"github.com/Ali-iotechsys/gqlgen-example/graph/model"
-	"math/rand"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	todo := &model.Todo{
+func (r *mutationResolver) CreateGroup(ctx context.Context, input model.NewGroup) (*model.Group, error) {
+	group := &model.Group{
 		Text: input.Text,
-		ID:   fmt.Sprintf("T%d", rand.Int()),
-		User: &model.User{ID: input.UserID, Name: "user " + input.UserID},
+		ID:   fmt.Sprintf("G%d", rand.Int()),
 	}
-	r.todos = append(r.todos, todo)
-	return todo, nil
+	r.groups = append(r.groups, group)
+	return group, nil
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	return r.todos, nil
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	user := &model.User{
+		Name:    input.Name,
+		Address: input.Address,
+		ID:      fmt.Sprintf("U%d", rand.Int()),
+	}
+	r.users = append(r.users, user)
+	return user, nil
+}
+
+func (r *mutationResolver) AssociateUserToGroup(ctx context.Context, input *model.NewAssociate) (*model.Group, error) {
+	for _, u := range r.users {
+		if u.ID == input.UserID {
+			for _, g := range r.groups {
+				if g.ID == input.GroupID {
+					g.Users = append(g.Users, u)
+					return g, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("associate Error")
+}
+
+func (r *queryResolver) Groups(ctx context.Context) ([]*model.Group, error) {
+	return r.groups, nil
+}
+
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	return r.users, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -2,27 +2,39 @@
 #
 # https://gqlgen.com/getting-started/
 
-type Todo {
+type Group {
   id: ID!
   text: String!
-  done: Boolean!
-  user: User!
+  users: [User]
 }
 
 type User {
   id: ID!
   name: String!
+  address: String!
 }
 
 type Query {
-  todos: [Todo!]!
+  groups: [Group!]!
+  users:[User!]!
 }
 
-input NewTodo {
+input NewGroup {
   text: String!
-  userId: String!
+}
+
+input NewUser {
+  name: String!
+  address: String!
+}
+
+input NewAssociate {
+  userId: ID!
+  groupId: ID!
 }
 
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
+  createGroup(input: NewGroup!): Group!
+  createUser(input: NewUser!): User!
+  associateUserToGroup(input: NewAssociate): Group!
 }

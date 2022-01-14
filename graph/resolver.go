@@ -10,5 +10,6 @@ import "github.com/Ali-iotechsys/gqlgen-example/graph/model"
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	todos []*model.Todo
+	groups []*model.Group
+	users  []*model.User
 }
