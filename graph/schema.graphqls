@@ -38,3 +38,8 @@ type Mutation {
   createUser(input: NewUser!): User!
   associateUserToGroup(input: NewAssociate): Group!
 }
+
+type Subscription {
+  userCreated: User
+  groupCreated: Group
+}
