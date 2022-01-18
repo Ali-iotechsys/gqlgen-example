@@ -81,6 +81,7 @@ func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan *model.U
 		<-ctx.Done()
 		r.mu.Lock()
 		delete(r.userObservers, id)
+		fmt.Printf("deleted user events '%s'\n", id)
 		r.mu.Unlock()
 	}()
 	// Register new user event
@@ -98,6 +99,7 @@ func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.
 		<-ctx.Done()
 		r.mu.Lock()
 		delete(r.groupObservers, id)
+		fmt.Printf("deleted group events '%s'\n", id)
 		r.mu.Unlock()
 	}()
 
