@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/hasura/go-graphql-client"
 	"time"
@@ -49,7 +48,7 @@ func main() {
 	}()
 
 	// Create (Subscription) GraphQL client
-	client2 := graphql.NewSubscriptionClient(WssServerURL)
+	/*client2 := graphql.NewSubscriptionClient(WssServerURL)
 	defer func() {
 		_ = client2.Close()
 	}()
@@ -65,12 +64,13 @@ func main() {
 		if errValue != nil {
 			return errValue
 		}
-		data := userSub.UserCreated
+		data := userSub
 		jsonErr := json.Unmarshal(*dataValue, &data)
 		if jsonErr != nil {
 			return jsonErr
 		}
-		fmt.Printf("client2: received User (ID: %s, Name: %s, Address: %s)\n", data.Id, data.Name, data.Address)
+		fmt.Printf("client2: received User (ID: %s, Name: %s, Address: %s)\n",
+			data.UserCreated.Id, data.UserCreated.Name, data.UserCreated.Address)
 		return nil
 	})
 	if sErr != nil {
@@ -83,5 +83,7 @@ func main() {
 	if rErr != nil {
 		fmt.Println(rErr)
 		return
-	}
+	}*/
+
+	time.Sleep(5 * time.Minute)
 }
