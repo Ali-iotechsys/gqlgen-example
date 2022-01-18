@@ -8,9 +8,15 @@ import (
 	"time"
 )
 
+const (
+	HttpServerURL   = "http://localhost:8080/graphql"
+	WssServerURL    = "wss://localhost:8080/graphql"
+	CreateUserDelay = 5 * time.Second
+)
+
 func main() {
 	// Create (Query/Mutation) GraphQL client
-	client1 := graphql.NewClient("http://localhost:8080/query", nil)
+	client1 := graphql.NewClient(HttpServerURL, nil)
 	if client1 == nil {
 		fmt.Println("cannot create client1")
 		return
@@ -18,7 +24,7 @@ func main() {
 	go func() {
 		userCount := 0
 		for {
-			time.Sleep(3 * time.Second)
+			time.Sleep(CreateUserDelay)
 			userCount++
 
 			var m struct {
@@ -29,8 +35,8 @@ func main() {
 				} `graphql:"createUser(input: {name: $name, address: $address})"`
 			}
 			variables := map[string]interface{}{
-				"name":    graphql.String(fmt.Sprintf("User_%d", userCount)),
-				"address": graphql.String(fmt.Sprintf("This is User_%d address", userCount)),
+				"name":    graphql.String(fmt.Sprintf("User_%02d", userCount)),
+				"address": graphql.String(fmt.Sprintf("This is User_%02d address", userCount)),
 			}
 			mErr := client1.Mutate(context.Background(), &m, variables)
 			if mErr != nil {
@@ -43,7 +49,7 @@ func main() {
 	}()
 
 	// Create (Subscription) GraphQL client
-	client2 := graphql.NewSubscriptionClient("wss://localhost:8080/query")
+	client2 := graphql.NewSubscriptionClient(WssServerURL)
 	defer func() {
 		_ = client2.Close()
 	}()
