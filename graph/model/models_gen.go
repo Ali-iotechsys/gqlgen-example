@@ -27,3 +27,8 @@ type User struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
 }
+
+type UserUpdate struct {
+	UserID     string `json:"userID"`
+	NewAddress string `json:"newAddress"`
+}

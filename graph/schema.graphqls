@@ -33,13 +33,21 @@ input NewAssociate {
   groupId: ID!
 }
 
+input UserUpdate {
+  userID: ID!
+  newAddress: String!
+}
+
 type Mutation {
   createGroup(input: NewGroup!): Group!
   createUser(input: NewUser!): User!
-  associateUserToGroup(input: NewAssociate): Group!
+  associateUserToGroup(input: NewAssociate!): Group!
+  updateUser(input: UserUpdate!): User!
 }
 
 type Subscription {
   userCreated: User
   groupCreated: Group
+  userUpdated(userID: ID!): User
+  groupUpdated(groupID: ID!): Group
 }

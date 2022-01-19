@@ -14,23 +14,37 @@ import (
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
+type EventID = string
+
+type UserObservers struct {
+	CreateUser map[EventID]chan *model.User
+	UpdateUser map[EventID]chan *model.User
+}
+
+type GroupObservers struct {
+	CreateGroup map[EventID]chan *model.Group
+	UpdateGroup map[EventID]chan *model.Group
+}
+
 type Resolver struct {
 	groups         []*model.Group
 	users          []*model.User
-	groupObservers map[string]struct {
-		Group chan *model.Group
-	}
-	userObservers map[string]struct {
-		User chan *model.User
-	}
-	mu sync.Mutex
+	groupObservers GroupObservers
+	userObservers  UserObservers
+	mu             sync.Mutex
 }
 
 func New() generated.Config {
 	return generated.Config{
 		Resolvers: &Resolver{
-			groupObservers: map[string]struct{ Group chan *model.Group }{},
-			userObservers:  map[string]struct{ User chan *model.User }{},
+			groupObservers: GroupObservers{
+				CreateGroup: map[EventID]chan *model.Group{},
+				UpdateGroup: map[EventID]chan *model.Group{},
+			},
+			userObservers: UserObservers{
+				CreateUser: map[EventID]chan *model.User{},
+				UpdateUser: map[EventID]chan *model.User{},
+			},
 		},
 	}
 }

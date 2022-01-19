@@ -23,8 +23,8 @@ func (r *mutationResolver) CreateGroup(ctx context.Context, input model.NewGroup
 	r.mu.Unlock()
 
 	// Notify all group observers
-	for _, gObserver := range r.groupObservers {
-		gObserver.Group <- group
+	for _, cgObserver := range r.groupObservers.CreateGroup {
+		cgObserver <- group
 	}
 	return group, nil
 }
@@ -40,14 +40,14 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 	r.users = append(r.users, user)
 	r.mu.Unlock()
 
-	// Notify all group observers
-	for _, uObserver := range r.userObservers {
-		uObserver.User <- user
+	// Notify all user observers
+	for _, cuObserver := range r.userObservers.CreateUser {
+		cuObserver <- user
 	}
 	return user, nil
 }
 
-func (r *mutationResolver) AssociateUserToGroup(ctx context.Context, input *model.NewAssociate) (*model.Group, error) {
+func (r *mutationResolver) AssociateUserToGroup(ctx context.Context, input model.NewAssociate) (*model.Group, error) {
 	// Add new User-Group association
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -56,12 +56,30 @@ func (r *mutationResolver) AssociateUserToGroup(ctx context.Context, input *mode
 			for _, g := range r.groups {
 				if g.ID == input.GroupID {
 					g.Users = append(g.Users, u)
+					// Notify the update group observer (if existed)
+					if ugObserver, ok := r.groupObservers.UpdateGroup[g.ID]; ok {
+						ugObserver <- g
+					}
 					return g, nil
 				}
 			}
 		}
 	}
 	return nil, fmt.Errorf("associate Error")
+}
+
+func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UserUpdate) (*model.User, error) {
+	for _, u := range r.users {
+		if u.ID == input.UserID {
+			u.Address = input.NewAddress
+			// Notify the update user observer (if existed)
+			if uuObserver, ok := r.userObservers.UpdateUser[u.ID]; ok {
+				uuObserver <- u
+			}
+			return u, nil
+		}
+	}
+	return nil, fmt.Errorf("update user Error")
 }
 
 func (r *queryResolver) Groups(ctx context.Context) ([]*model.Group, error) {
@@ -73,38 +91,77 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 }
 
 func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan *model.User, error) {
-	id := randString(8)
+	eventID := randString(8)
 	userEvents := make(chan *model.User, 1)
 
 	go func() {
 		// Un-register the user event
 		<-ctx.Done()
 		r.mu.Lock()
-		delete(r.userObservers, id)
-		fmt.Printf("deleted user events '%s'\n", id)
+		delete(r.userObservers.CreateUser, eventID)
+		fmt.Printf("deleted user events '%s'\n", eventID)
 		r.mu.Unlock()
 	}()
+
 	// Register new user event
-	r.userObservers[id] = struct{ User chan *model.User }{User: userEvents}
+	r.userObservers.CreateUser[eventID] = userEvents
 
 	return userEvents, nil
 }
 
 func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.Group, error) {
-	id := randString(8)
+	eventID := randString(8)
 	groupEvents := make(chan *model.Group, 1)
 
 	go func() {
 		// Un-register the group event
 		<-ctx.Done()
 		r.mu.Lock()
-		delete(r.groupObservers, id)
-		fmt.Printf("deleted group events '%s'\n", id)
+		delete(r.groupObservers.CreateGroup, eventID)
+		fmt.Printf("deleted group events '%s'\n", eventID)
 		r.mu.Unlock()
 	}()
 
 	// Register new group event
-	r.groupObservers[id] = struct{ Group chan *model.Group }{Group: groupEvents}
+	r.groupObservers.CreateGroup[eventID] = groupEvents
+
+	return groupEvents, nil
+}
+
+func (r *subscriptionResolver) UserUpdated(ctx context.Context, userID string) (<-chan *model.User, error) {
+	eventID := userID
+	userEvents := make(chan *model.User, 1)
+
+	go func() {
+		// Un-register the user event
+		<-ctx.Done()
+		r.mu.Lock()
+		delete(r.userObservers.UpdateUser, eventID)
+		fmt.Printf("deleted user events '%s'\n", eventID)
+		r.mu.Unlock()
+	}()
+
+	// Register new user event
+	r.userObservers.UpdateUser[eventID] = userEvents
+
+	return userEvents, nil
+}
+
+func (r *subscriptionResolver) GroupUpdated(ctx context.Context, groupID string) (<-chan *model.Group, error) {
+	eventID := groupID
+	groupEvents := make(chan *model.Group, 1)
+
+	go func() {
+		// Un-register the group event
+		<-ctx.Done()
+		r.mu.Lock()
+		delete(r.groupObservers.UpdateGroup, eventID)
+		fmt.Printf("deleted group events '%s'\n", eventID)
+		r.mu.Unlock()
+	}()
+
+	// Register new group event
+	r.groupObservers.UpdateGroup[eventID] = groupEvents
 
 	return groupEvents, nil
 }

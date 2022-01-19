@@ -52,9 +52,10 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AssociateUserToGroup func(childComplexity int, input *model.NewAssociate) int
+		AssociateUserToGroup func(childComplexity int, input model.NewAssociate) int
 		CreateGroup          func(childComplexity int, input model.NewGroup) int
 		CreateUser           func(childComplexity int, input model.NewUser) int
+		UpdateUser           func(childComplexity int, input model.UserUpdate) int
 	}
 
 	Query struct {
@@ -64,7 +65,9 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		GroupCreated func(childComplexity int) int
+		GroupUpdated func(childComplexity int, groupID string) int
 		UserCreated  func(childComplexity int) int
+		UserUpdated  func(childComplexity int, userID string) int
 	}
 
 	User struct {
@@ -77,7 +80,8 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateGroup(ctx context.Context, input model.NewGroup) (*model.Group, error)
 	CreateUser(ctx context.Context, input model.NewUser) (*model.User, error)
-	AssociateUserToGroup(ctx context.Context, input *model.NewAssociate) (*model.Group, error)
+	AssociateUserToGroup(ctx context.Context, input model.NewAssociate) (*model.Group, error)
+	UpdateUser(ctx context.Context, input model.UserUpdate) (*model.User, error)
 }
 type QueryResolver interface {
 	Groups(ctx context.Context) ([]*model.Group, error)
@@ -86,6 +90,8 @@ type QueryResolver interface {
 type SubscriptionResolver interface {
 	UserCreated(ctx context.Context) (<-chan *model.User, error)
 	GroupCreated(ctx context.Context) (<-chan *model.Group, error)
+	UserUpdated(ctx context.Context, userID string) (<-chan *model.User, error)
+	GroupUpdated(ctx context.Context, groupID string) (<-chan *model.Group, error)
 }
 
 type executableSchema struct {
@@ -134,7 +140,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AssociateUserToGroup(childComplexity, args["input"].(*model.NewAssociate)), true
+		return e.complexity.Mutation.AssociateUserToGroup(childComplexity, args["input"].(model.NewAssociate)), true
 
 	case "Mutation.createGroup":
 		if e.complexity.Mutation.CreateGroup == nil {
@@ -160,6 +166,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.NewUser)), true
 
+	case "Mutation.updateUser":
+		if e.complexity.Mutation.UpdateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["input"].(model.UserUpdate)), true
+
 	case "Query.groups":
 		if e.complexity.Query.Groups == nil {
 			break
@@ -181,12 +199,36 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.GroupCreated(childComplexity), true
 
+	case "Subscription.groupUpdated":
+		if e.complexity.Subscription.GroupUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_groupUpdated_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.GroupUpdated(childComplexity, args["groupID"].(string)), true
+
 	case "Subscription.userCreated":
 		if e.complexity.Subscription.UserCreated == nil {
 			break
 		}
 
 		return e.complexity.Subscription.UserCreated(childComplexity), true
+
+	case "Subscription.userUpdated":
+		if e.complexity.Subscription.UserUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_userUpdated_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.UserUpdated(childComplexity, args["userID"].(string)), true
 
 	case "User.address":
 		if e.complexity.User.Address == nil {
@@ -325,15 +367,23 @@ input NewAssociate {
   groupId: ID!
 }
 
+input UserUpdate {
+  userID: ID!
+  newAddress: String!
+}
+
 type Mutation {
   createGroup(input: NewGroup!): Group!
   createUser(input: NewUser!): User!
-  associateUserToGroup(input: NewAssociate): Group!
+  associateUserToGroup(input: NewAssociate!): Group!
+  updateUser(input: UserUpdate!): User!
 }
 
 type Subscription {
   userCreated: User
   groupCreated: Group
+  userUpdated(userID: ID!): User
+  groupUpdated(groupID: ID!): Group
 }
 `, BuiltIn: false},
 }
@@ -346,10 +396,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_associateUserToGroup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.NewAssociate
+	var arg0 model.NewAssociate
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalONewAssociate2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐNewAssociate(ctx, tmp)
+		arg0, err = ec.unmarshalNNewAssociate2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐNewAssociate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -388,6 +438,21 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UserUpdate
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUserUpdate2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUserUpdate(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -400,6 +465,36 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_groupUpdated_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["groupID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groupID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["groupID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_userUpdated_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userID"] = arg0
 	return args, nil
 }
 
@@ -652,7 +747,7 @@ func (ec *executionContext) _Mutation_associateUserToGroup(ctx context.Context, 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AssociateUserToGroup(rctx, args["input"].(*model.NewAssociate))
+		return ec.resolvers.Mutation().AssociateUserToGroup(rctx, args["input"].(model.NewAssociate))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -667,6 +762,48 @@ func (ec *executionContext) _Mutation_associateUserToGroup(ctx context.Context, 
 	res := resTmp.(*model.Group)
 	fc.Result = res
 	return ec.marshalNGroup2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐGroup(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateUser(rctx, args["input"].(model.UserUpdate))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_groups(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -871,6 +1008,104 @@ func (ec *executionContext) _Subscription_groupCreated(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Subscription().GroupCreated(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.Group)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalOGroup2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐGroup(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_userUpdated(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_userUpdated_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().UserUpdated(rctx, args["userID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.User)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalOUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUser(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_groupUpdated(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_groupUpdated_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().GroupUpdated(rctx, args["groupID"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2206,6 +2441,37 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUserUpdate(ctx context.Context, obj interface{}) (model.UserUpdate, error) {
+	var it model.UserUpdate
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "userID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+			it.UserID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "newAddress":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newAddress"))
+			it.NewAddress, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2275,6 +2541,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "associateUserToGroup":
 			out.Values[i] = ec._Mutation_associateUserToGroup(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateUser":
+			out.Values[i] = ec._Mutation_updateUser(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2364,6 +2635,10 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_userCreated(ctx, fields[0])
 	case "groupCreated":
 		return ec._Subscription_groupCreated(ctx, fields[0])
+	case "userUpdated":
+		return ec._Subscription_userUpdated(ctx, fields[0])
+	case "groupUpdated":
+		return ec._Subscription_groupUpdated(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -2744,6 +3019,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNNewAssociate2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐNewAssociate(ctx context.Context, v interface{}) (model.NewAssociate, error) {
+	res, err := ec.unmarshalInputNewAssociate(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewGroup2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐNewGroup(ctx context.Context, v interface{}) (model.NewGroup, error) {
 	res, err := ec.unmarshalInputNewGroup(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2825,6 +3105,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgql
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserUpdate2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUserUpdate(ctx context.Context, v interface{}) (model.UserUpdate, error) {
+	res, err := ec.unmarshalInputUserUpdate(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -3113,14 +3398,6 @@ func (ec *executionContext) marshalOGroup2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgq
 		return graphql.Null
 	}
 	return ec._Group(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalONewAssociate2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐNewAssociate(ctx context.Context, v interface{}) (*model.NewAssociate, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputNewAssociate(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
