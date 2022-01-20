@@ -71,10 +71,18 @@ func (r *mutationResolver) AssociateUserToGroup(ctx context.Context, input model
 func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UserUpdate) (*model.User, error) {
 	for _, u := range r.users {
 		if u.ID == input.UserID {
-			u.Address = input.NewAddress
-			// Notify the update user observer (if existed)
-			if uuObserver, ok := r.userObservers.UpdateUser[u.ID]; ok {
-				uuObserver <- u
+			if input.NewName != nil {
+				u.Name = *input.NewName
+			}
+			if input.NewAddress != nil {
+				u.Address = *input.NewAddress
+			}
+			// Notify the update user observers (if existed)
+			allEventIDs := toEventIDs(input)
+			for _, eventID := range allEventIDs {
+				if uuObserver, ok := r.userObservers.UpdateUser[eventID]; ok {
+					uuObserver <- u
+				}
 			}
 			return u, nil
 		}
@@ -128,8 +136,11 @@ func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.
 	return groupEvents, nil
 }
 
-func (r *subscriptionResolver) UserUpdated(ctx context.Context, userID string) (<-chan *model.User, error) {
-	eventID := userID
+func (r *subscriptionResolver) UserUpdated(ctx context.Context, userid string, topic *model.UserTopic) (<-chan *model.User, error) {
+	eventID := userid
+	if topic != nil {
+		eventID = hashCode(userid, topic)
+	}
 	userEvents := make(chan *model.User, 1)
 
 	go func() {

@@ -28,7 +28,13 @@ type User struct {
 	Address string `json:"address"`
 }
 
+type UserTopic struct {
+	Name    *string `json:"name"`
+	Address *string `json:"address"`
+}
+
 type UserUpdate struct {
-	UserID     string `json:"userID"`
-	NewAddress string `json:"newAddress"`
+	UserID     string  `json:"userID"`
+	NewName    *string `json:"newName"`
+	NewAddress *string `json:"newAddress"`
 }

@@ -35,7 +35,8 @@ input NewAssociate {
 
 input UserUpdate {
   userID: ID!
-  newAddress: String!
+  newName: String
+  newAddress: String
 }
 
 type Mutation {
@@ -45,9 +46,14 @@ type Mutation {
   updateUser(input: UserUpdate!): User!
 }
 
+input UserTopic {
+  name: String
+  address: String
+}
+
 type Subscription {
   userCreated: User
   groupCreated: Group
-  userUpdated(userID: ID!): User
+  userUpdated(userid: ID!, topic: UserTopic): User
   groupUpdated(groupID: ID!): Group
 }

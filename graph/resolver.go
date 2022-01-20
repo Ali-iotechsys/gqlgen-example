@@ -4,6 +4,7 @@
 package graph
 
 import (
+	"encoding/json"
 	"github.com/Ali-iotechsys/gqlgen-example/graph/generated"
 	"github.com/Ali-iotechsys/gqlgen-example/graph/model"
 	"math/rand"
@@ -17,8 +18,9 @@ import (
 type EventID = string
 
 type UserObservers struct {
-	CreateUser map[EventID]chan *model.User
-	UpdateUser map[EventID]chan *model.User
+	CreateUser   map[EventID]chan *model.User
+	UpdateUser   map[EventID]chan *model.User
+	OnUpdateUser map[EventID]chan *model.User
 }
 
 type GroupObservers struct {
@@ -57,4 +59,33 @@ func randString(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func hashCode(userID string, userTopic *model.UserTopic) string {
+	key := struct {
+		UserID    string
+		UserTopic *model.UserTopic
+	}{UserID: userID, UserTopic: userTopic}
+	data, _ := json.Marshal(key)
+	return string(data)
+}
+
+func toUserTopics(update model.UserUpdate) []*model.UserTopic {
+	var topics []*model.UserTopic
+	if update.NewName != nil {
+		topics = append(topics, &model.UserTopic{Name: update.NewName})
+	}
+	if update.NewAddress != nil {
+		topics = append(topics, &model.UserTopic{Address: update.NewAddress})
+	}
+	return topics
+}
+
+func toEventIDs(update model.UserUpdate) []EventID {
+	var eventIDs = []string{update.UserID}
+	allTopics := toUserTopics(update)
+	for _, topic := range allTopics {
+		eventIDs = append(eventIDs, hashCode(update.UserID, topic))
+	}
+	return eventIDs
 }
