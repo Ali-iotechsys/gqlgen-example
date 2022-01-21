@@ -73,7 +73,7 @@ func hashCode(userID string, userTopic model.UserTopic) string {
 
 func toUserTopics(update model.UserUpdate) []model.UserTopic {
 	var topics []model.UserTopic
-	// 1- added initial topic
+	// 1- added empty topic
 	topics = append(topics, model.UserTopic{})
 	// 2- added name topic
 	if update.NewName != nil {
@@ -82,6 +82,10 @@ func toUserTopics(update model.UserUpdate) []model.UserTopic {
 	// 3- added address topic
 	if update.NewAddress != nil {
 		topics = append(topics, model.UserTopic{Address: update.NewAddress})
+	}
+	// 4- added name and address topic
+	if update.NewName != nil && update.NewAddress != nil {
+		topics = append(topics, model.UserTopic{Name: update.NewName, Address: update.NewAddress})
 	}
 	return topics
 }
