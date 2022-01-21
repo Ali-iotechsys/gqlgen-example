@@ -136,11 +136,8 @@ func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.
 	return groupEvents, nil
 }
 
-func (r *subscriptionResolver) UserUpdated(ctx context.Context, userid string, topic *model.UserTopic) (<-chan *model.User, error) {
-	eventID := userid
-	if topic != nil {
-		eventID = hashCode(userid, topic)
-	}
+func (r *subscriptionResolver) UserUpdated(ctx context.Context, userID string, topic model.UserTopic) (<-chan *model.User, error) {
+	eventID := hashCode(userID, topic)
 	userEvents := make(chan *model.User, 1)
 
 	go func() {

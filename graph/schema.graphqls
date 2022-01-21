@@ -54,6 +54,6 @@ input UserTopic {
 type Subscription {
   userCreated: User
   groupCreated: Group
-  userUpdated(userid: ID!, topic: UserTopic): User
+  userUpdated(userID: ID!, topic: UserTopic!): User
   groupUpdated(groupID: ID!): Group
 }
