@@ -77,12 +77,12 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UserUpdat
 			if input.NewAddress != nil {
 				u.Address = *input.NewAddress
 			}
-			// Notify the update user observers (if existed)
-			allEventIDs := toUserEventIDs(input)
-			for _, eventID := range allEventIDs {
-				if uuObserver, ok := r.userObservers.UpdateUser[eventID]; ok {
-					uuObserver <- u
-				}
+			// Notify the update user observer (if existed)
+			if uuObserver, ok := r.userObservers.UpdateUser[u.ID+u.Name]; ok {
+				uuObserver <- u
+			}
+			if uuObserver, ok := r.userObservers.UpdateUser[u.ID+u.Address]; ok {
+				uuObserver <- u
 			}
 			return u, nil
 		}
@@ -136,37 +136,6 @@ func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.
 	return groupEvents, nil
 }
 
-func (r *subscriptionResolver) UserUpdated(ctx context.Context, userIDs []string, topic model.UserTopic) (<-chan *model.User, error) {
-	var eventIDs []string
-
-	// generate eventIDs for all userIDs
-	for _, userID := range userIDs {
-		eventID := toUserHashCode(userID, topic)
-		eventIDs = append(eventIDs, eventID)
-	}
-
-	// create Subscription channel
-	userEvents := make(chan *model.User, 1)
-
-	go func() {
-		// Un-register the user event
-		<-ctx.Done()
-		r.mu.Lock()
-		for _, eventID := range eventIDs {
-			delete(r.userObservers.UpdateUser, eventID)
-			fmt.Printf("deleted user events '%s'\n", eventID)
-		}
-		r.mu.Unlock()
-	}()
-
-	// Register new user event
-	for _, eventID := range eventIDs {
-		r.userObservers.UpdateUser[eventID] = userEvents
-	}
-
-	return userEvents, nil
-}
-
 func (r *subscriptionResolver) GroupUpdated(ctx context.Context, groupID string) (<-chan *model.Group, error) {
 	eventID := groupID
 	groupEvents := make(chan *model.Group, 1)
@@ -184,6 +153,44 @@ func (r *subscriptionResolver) GroupUpdated(ctx context.Context, groupID string)
 	r.groupObservers.UpdateGroup[eventID] = groupEvents
 
 	return groupEvents, nil
+}
+
+func (r *subscriptionResolver) OnUserNameUpdated(ctx context.Context, userID string, name string) (<-chan *model.User, error) {
+	eventID := userID + name
+	userEvents := make(chan *model.User, 1)
+
+	go func() {
+		// Un-register the group event
+		<-ctx.Done()
+		r.mu.Lock()
+		delete(r.groupObservers.UpdateGroup, eventID)
+		fmt.Printf("deleted group events '%s'\n", eventID)
+		r.mu.Unlock()
+	}()
+
+	// Register new group event
+	r.userObservers.UpdateUser[eventID] = userEvents
+
+	return userEvents, nil
+}
+
+func (r *subscriptionResolver) OnUserAddressUpdated(ctx context.Context, userID string, address string) (<-chan *model.User, error) {
+	eventID := userID + address
+	userEvents := make(chan *model.User, 1)
+
+	go func() {
+		// Un-register the group event
+		<-ctx.Done()
+		r.mu.Lock()
+		delete(r.groupObservers.UpdateGroup, eventID)
+		fmt.Printf("deleted group events '%s'\n", eventID)
+		r.mu.Unlock()
+	}()
+
+	// Register new group event
+	r.userObservers.UpdateUser[eventID] = userEvents
+
+	return userEvents, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

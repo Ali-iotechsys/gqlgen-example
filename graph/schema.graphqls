@@ -46,14 +46,10 @@ type Mutation {
   updateUser(input: UserUpdate!): User!
 }
 
-input UserTopic {
-  name: String
-  address: String
-}
-
 type Subscription {
   userCreated: User
   groupCreated: Group
-  userUpdated(userIDs: [ID!]!, topic: UserTopic!): User
   groupUpdated(groupID: ID!): Group
+  onUserNameUpdated(userID: ID!, name: String!): User
+  onUserAddressUpdated(userID: ID!, address: String!): User
 }

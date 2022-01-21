@@ -64,10 +64,11 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		GroupCreated func(childComplexity int) int
-		GroupUpdated func(childComplexity int, groupID string) int
-		UserCreated  func(childComplexity int) int
-		UserUpdated  func(childComplexity int, userIDs []string, topic model.UserTopic) int
+		GroupCreated         func(childComplexity int) int
+		GroupUpdated         func(childComplexity int, groupID string) int
+		OnUserAddressUpdated func(childComplexity int, userID string, address string) int
+		OnUserNameUpdated    func(childComplexity int, userID string, name string) int
+		UserCreated          func(childComplexity int) int
 	}
 
 	User struct {
@@ -90,8 +91,9 @@ type QueryResolver interface {
 type SubscriptionResolver interface {
 	UserCreated(ctx context.Context) (<-chan *model.User, error)
 	GroupCreated(ctx context.Context) (<-chan *model.Group, error)
-	UserUpdated(ctx context.Context, userIDs []string, topic model.UserTopic) (<-chan *model.User, error)
 	GroupUpdated(ctx context.Context, groupID string) (<-chan *model.Group, error)
+	OnUserNameUpdated(ctx context.Context, userID string, name string) (<-chan *model.User, error)
+	OnUserAddressUpdated(ctx context.Context, userID string, address string) (<-chan *model.User, error)
 }
 
 type executableSchema struct {
@@ -211,24 +213,36 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.GroupUpdated(childComplexity, args["groupID"].(string)), true
 
+	case "Subscription.onUserAddressUpdated":
+		if e.complexity.Subscription.OnUserAddressUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_onUserAddressUpdated_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.OnUserAddressUpdated(childComplexity, args["userID"].(string), args["address"].(string)), true
+
+	case "Subscription.onUserNameUpdated":
+		if e.complexity.Subscription.OnUserNameUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_onUserNameUpdated_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.OnUserNameUpdated(childComplexity, args["userID"].(string), args["name"].(string)), true
+
 	case "Subscription.userCreated":
 		if e.complexity.Subscription.UserCreated == nil {
 			break
 		}
 
 		return e.complexity.Subscription.UserCreated(childComplexity), true
-
-	case "Subscription.userUpdated":
-		if e.complexity.Subscription.UserUpdated == nil {
-			break
-		}
-
-		args, err := ec.field_Subscription_userUpdated_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Subscription.UserUpdated(childComplexity, args["userIDs"].([]string), args["topic"].(model.UserTopic)), true
 
 	case "User.address":
 		if e.complexity.User.Address == nil {
@@ -380,16 +394,12 @@ type Mutation {
   updateUser(input: UserUpdate!): User!
 }
 
-input UserTopic {
-  name: String
-  address: String
-}
-
 type Subscription {
   userCreated: User
   groupCreated: Group
-  userUpdated(userIDs: [ID!]!, topic: UserTopic!): User
   groupUpdated(groupID: ID!): Group
+  onUserNameUpdated(userID: ID!, name: String!): User
+  onUserAddressUpdated(userID: ID!, address: String!): User
 }
 `, BuiltIn: false},
 }
@@ -489,27 +499,51 @@ func (ec *executionContext) field_Subscription_groupUpdated_args(ctx context.Con
 	return args, nil
 }
 
-func (ec *executionContext) field_Subscription_userUpdated_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Subscription_onUserAddressUpdated_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
-	if tmp, ok := rawArgs["userIDs"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userIDs"))
-		arg0, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["userIDs"] = arg0
-	var arg1 model.UserTopic
-	if tmp, ok := rawArgs["topic"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("topic"))
-		arg1, err = ec.unmarshalNUserTopic2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUserTopic(ctx, tmp)
+	args["userID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["address"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["topic"] = arg1
+	args["address"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_onUserNameUpdated_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg1
 	return args, nil
 }
 
@@ -1046,55 +1080,6 @@ func (ec *executionContext) _Subscription_groupCreated(ctx context.Context, fiel
 	}
 }
 
-func (ec *executionContext) _Subscription_userUpdated(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Subscription_userUpdated_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().UserUpdated(rctx, args["userIDs"].([]string), args["topic"].(model.UserTopic))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		return nil
-	}
-	return func() graphql.Marshaler {
-		res, ok := <-resTmp.(<-chan *model.User)
-		if !ok {
-			return nil
-		}
-		return graphql.WriterFunc(func(w io.Writer) {
-			w.Write([]byte{'{'})
-			graphql.MarshalString(field.Alias).MarshalGQL(w)
-			w.Write([]byte{':'})
-			ec.marshalOUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUser(ctx, field.Selections, res).MarshalGQL(w)
-			w.Write([]byte{'}'})
-		})
-	}
-}
-
 func (ec *executionContext) _Subscription_groupUpdated(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1139,6 +1124,104 @@ func (ec *executionContext) _Subscription_groupUpdated(ctx context.Context, fiel
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
 			ec.marshalOGroup2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐGroup(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_onUserNameUpdated(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_onUserNameUpdated_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().OnUserNameUpdated(rctx, args["userID"].(string), args["name"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.User)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalOUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUser(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_onUserAddressUpdated(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_onUserAddressUpdated_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().OnUserAddressUpdated(rctx, args["userID"].(string), args["address"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.User)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalOUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUser(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -2456,37 +2539,6 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUserTopic(ctx context.Context, obj interface{}) (model.UserTopic, error) {
-	var it model.UserTopic
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "address":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
-			it.Address, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputUserUpdate(ctx context.Context, obj interface{}) (model.UserUpdate, error) {
 	var it model.UserUpdate
 	asMap := map[string]interface{}{}
@@ -2689,10 +2741,12 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_userCreated(ctx, fields[0])
 	case "groupCreated":
 		return ec._Subscription_groupCreated(ctx, fields[0])
-	case "userUpdated":
-		return ec._Subscription_userUpdated(ctx, fields[0])
 	case "groupUpdated":
 		return ec._Subscription_groupUpdated(ctx, fields[0])
+	case "onUserNameUpdated":
+		return ec._Subscription_onUserNameUpdated(ctx, fields[0])
+	case "onUserAddressUpdated":
+		return ec._Subscription_onUserAddressUpdated(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -3073,42 +3127,6 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNNewAssociate2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐNewAssociate(ctx context.Context, v interface{}) (model.NewAssociate, error) {
 	res, err := ec.unmarshalInputNewAssociate(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3195,11 +3213,6 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋAliᚑiotechsysᚋgql
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNUserTopic2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUserTopic(ctx context.Context, v interface{}) (model.UserTopic, error) {
-	res, err := ec.unmarshalInputUserTopic(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUserUpdate2githubᚗcomᚋAliᚑiotechsysᚋgqlgenᚑexampleᚋgraphᚋmodelᚐUserUpdate(ctx context.Context, v interface{}) (model.UserUpdate, error) {

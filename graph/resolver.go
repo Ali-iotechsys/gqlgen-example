@@ -4,8 +4,6 @@
 package graph
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/Ali-iotechsys/gqlgen-example/graph/generated"
 	"github.com/Ali-iotechsys/gqlgen-example/graph/model"
 	"math/rand"
@@ -60,43 +58,4 @@ func randString(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
-}
-
-func toUserHashCode(userID string, userTopic model.UserTopic) string {
-	key := struct {
-		UserID    string
-		UserTopic model.UserTopic
-	}{UserID: userID, UserTopic: userTopic}
-	data, _ := json.Marshal(key)
-	return string(data)
-}
-
-func toUserTopics(update model.UserUpdate) []model.UserTopic {
-	var topics []model.UserTopic
-	// 1- added empty topic
-	topics = append(topics, model.UserTopic{})
-	// 2- added name topic
-	if update.NewName != nil {
-		topics = append(topics, model.UserTopic{Name: update.NewName})
-	}
-	// 3- added address topic
-	if update.NewAddress != nil {
-		topics = append(topics, model.UserTopic{Address: update.NewAddress})
-	}
-	// 4- added name and address topic
-	if update.NewName != nil && update.NewAddress != nil {
-		topics = append(topics, model.UserTopic{Name: update.NewName, Address: update.NewAddress})
-	}
-	return topics
-}
-
-func toUserEventIDs(update model.UserUpdate) []EventID {
-	var eventIDs []string
-	allTopics := toUserTopics(update)
-	for _, topic := range allTopics {
-		eventID := toUserHashCode(update.UserID, topic)
-		eventIDs = append(eventIDs, eventID)
-		fmt.Println(eventID)
-	}
-	return eventIDs
 }
