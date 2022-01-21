@@ -62,7 +62,7 @@ func randString(n int) string {
 	return string(b)
 }
 
-func hashCode(userID string, userTopic model.UserTopic) string {
+func toUserHashCode(userID string, userTopic model.UserTopic) string {
 	key := struct {
 		UserID    string
 		UserTopic model.UserTopic
@@ -90,11 +90,11 @@ func toUserTopics(update model.UserUpdate) []model.UserTopic {
 	return topics
 }
 
-func toEventIDs(update model.UserUpdate) []EventID {
+func toUserEventIDs(update model.UserUpdate) []EventID {
 	var eventIDs []string
 	allTopics := toUserTopics(update)
 	for _, topic := range allTopics {
-		eventID := hashCode(update.UserID, topic)
+		eventID := toUserHashCode(update.UserID, topic)
 		eventIDs = append(eventIDs, eventID)
 		fmt.Println(eventID)
 	}

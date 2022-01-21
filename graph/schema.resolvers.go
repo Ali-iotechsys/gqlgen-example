@@ -78,7 +78,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UserUpdat
 				u.Address = *input.NewAddress
 			}
 			// Notify the update user observers (if existed)
-			allEventIDs := toEventIDs(input)
+			allEventIDs := toUserEventIDs(input)
 			for _, eventID := range allEventIDs {
 				if uuObserver, ok := r.userObservers.UpdateUser[eventID]; ok {
 					uuObserver <- u
@@ -141,7 +141,7 @@ func (r *subscriptionResolver) UserUpdated(ctx context.Context, userIDs []string
 
 	// generate eventIDs for all userIDs
 	for _, userID := range userIDs {
-		eventID := hashCode(userID, topic)
+		eventID := toUserHashCode(userID, topic)
 		eventIDs = append(eventIDs, eventID)
 	}
 
