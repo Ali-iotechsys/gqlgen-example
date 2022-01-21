@@ -136,21 +136,33 @@ func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.
 	return groupEvents, nil
 }
 
-func (r *subscriptionResolver) UserUpdated(ctx context.Context, userID string, topic model.UserTopic) (<-chan *model.User, error) {
-	eventID := hashCode(userID, topic)
+func (r *subscriptionResolver) UserUpdated(ctx context.Context, userIDs []string, topic model.UserTopic) (<-chan *model.User, error) {
+	var eventIDs []string
+
+	// generate eventIDs for all userIDs
+	for _, userID := range userIDs {
+		eventID := hashCode(userID, topic)
+		eventIDs = append(eventIDs, eventID)
+	}
+
+	// create Subscription channel
 	userEvents := make(chan *model.User, 1)
 
 	go func() {
 		// Un-register the user event
 		<-ctx.Done()
 		r.mu.Lock()
-		delete(r.userObservers.UpdateUser, eventID)
-		fmt.Printf("deleted user events '%s'\n", eventID)
+		for _, eventID := range eventIDs {
+			delete(r.userObservers.UpdateUser, eventID)
+			fmt.Printf("deleted user events '%s'\n", eventID)
+		}
 		r.mu.Unlock()
 	}()
 
 	// Register new user event
-	r.userObservers.UpdateUser[eventID] = userEvents
+	for _, eventID := range eventIDs {
+		r.userObservers.UpdateUser[eventID] = userEvents
+	}
 
 	return userEvents, nil
 }
