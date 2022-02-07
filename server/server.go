@@ -2,19 +2,18 @@ package main
 
 import (
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/Ali-iotechsys/gqlgen-example/graph"
+	"github.com/Ali-iotechsys/gqlgen-example/graph/generated"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/Ali-iotechsys/gqlgen-example/graph"
-	"github.com/Ali-iotechsys/gqlgen-example/graph/generated"
 )
 
 const defaultPort = "8080"
@@ -40,6 +39,7 @@ func NewCustomServer(es graphql.ExecutableSchema) *handler.Server {
 
 	srv.AddTransport(&transport.Websocket{
 		Upgrader: websocket.Upgrader{
+			//Subprotocols: []string{"graphql-ws"},
 			Subprotocols: []string{"graphql-transport-ws"},
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -49,6 +49,7 @@ func NewCustomServer(es graphql.ExecutableSchema) *handler.Server {
 		},
 		KeepAlivePingInterval: 10 * time.Second,
 	})
+
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
