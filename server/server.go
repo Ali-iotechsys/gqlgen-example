@@ -39,7 +39,7 @@ func NewCustomServer(es graphql.ExecutableSchema) *handler.Server {
 
 	srv.AddTransport(&transport.Websocket{
 		Upgrader: websocket.Upgrader{
-			//Subprotocols: []string{"graphql-ws"},
+			//Subprotocols: []string{"graphql-ws"}, // this is the default protocol
 			Subprotocols: []string{"graphql-transport-ws"},
 			CheckOrigin: func(r *http.Request) bool {
 				return true
