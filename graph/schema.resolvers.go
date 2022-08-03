@@ -12,6 +12,7 @@ import (
 	"github.com/Ali-iotechsys/gqlgen-example/graph/model"
 )
 
+// CreateGroup is the resolver for the createGroup field.
 func (r *mutationResolver) CreateGroup(ctx context.Context, input model.NewGroup) (*model.Group, error) {
 	// Add new Group
 	group := &model.Group{
@@ -68,6 +69,7 @@ func (r *mutationResolver) AssociateUserToGroup(ctx context.Context, input model
 	return nil, fmt.Errorf("associate Error")
 }
 
+// UpdateUser is the resolver for the updateUser field.
 func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UserUpdate) (*model.User, error) {
 	for _, u := range r.users {
 		if u.ID == input.UserID {
@@ -90,14 +92,17 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UserUpdat
 	return nil, fmt.Errorf("update user Error")
 }
 
+// Groups is the resolver for the groups field.
 func (r *queryResolver) Groups(ctx context.Context) ([]*model.Group, error) {
 	return r.groups, nil
 }
 
+// Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return r.users, nil
 }
 
+// UserCreated is the resolver for the userCreated field.
 func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan *model.User, error) {
 	eventID := randString(8)
 	userEvents := make(chan *model.User, 1)
@@ -117,6 +122,7 @@ func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan *model.U
 	return userEvents, nil
 }
 
+// GroupCreated is the resolver for the groupCreated field.
 func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.Group, error) {
 	eventID := randString(8)
 	groupEvents := make(chan *model.Group, 1)
@@ -136,6 +142,7 @@ func (r *subscriptionResolver) GroupCreated(ctx context.Context) (<-chan *model.
 	return groupEvents, nil
 }
 
+// GroupUpdated is the resolver for the groupUpdated field.
 func (r *subscriptionResolver) GroupUpdated(ctx context.Context, groupID string) (<-chan *model.Group, error) {
 	eventID := groupID
 	groupEvents := make(chan *model.Group, 1)
@@ -155,6 +162,7 @@ func (r *subscriptionResolver) GroupUpdated(ctx context.Context, groupID string)
 	return groupEvents, nil
 }
 
+// OnUserNameUpdated is the resolver for the onUserNameUpdated field.
 func (r *subscriptionResolver) OnUserNameUpdated(ctx context.Context, userID string, name string) (<-chan *model.User, error) {
 	eventID := userID + name
 	userEvents := make(chan *model.User, 1)
@@ -174,6 +182,7 @@ func (r *subscriptionResolver) OnUserNameUpdated(ctx context.Context, userID str
 	return userEvents, nil
 }
 
+// OnUserAddressUpdated is the resolver for the onUserAddressUpdated field.
 func (r *subscriptionResolver) OnUserAddressUpdated(ctx context.Context, userID string, address string) (<-chan *model.User, error) {
 	eventID := userID + address
 	userEvents := make(chan *model.User, 1)

@@ -2,7 +2,7 @@
 GraphQL Example
 
 - Run `$ go generate ./...`
-- Run `$ go run server.go`
+- Run `$ go run server/server.go`
 - Open http://localhost:8080 in a browser.
 - Try the following queries:
 
